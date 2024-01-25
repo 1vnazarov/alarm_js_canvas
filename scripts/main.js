@@ -1,60 +1,105 @@
-class ClockHand {
-    constructor(ctx, pos, length, width) {
-        this.ctx = ctx;
-        this.pos = pos;
-        this.length = length;
-        this.width = width;
+class Alarm {
+    constructor(alarmsListElementId, addAlarmButtonId) {
+        this.alarms = [];
+        this.alarmsListElement = document.getElementById(alarmsListElementId);
+        document.getElementById(addAlarmButtonId).addEventListener('click', () => {
+            const hours = document.getElementById('alarm-hours').value;
+            const minutes = document.getElementById('alarm-minutes').value;
+            if (hours !== '' && minutes !== '') {
+                this.setAlarm({ hours: parseInt(hours), minutes: parseInt(minutes) });
+                this.updateAlarmsList();
+            }
+        });
     }
 
-    draw() {
-        this.ctx.beginPath();
-        this.ctx.lineWidth = this.width;
-        this.ctx.lineCap = "round";
-        this.ctx.moveTo(0, 0);
-        this.ctx.rotate(this.pos);
-        this.ctx.lineTo(0, -this.length);
-        this.ctx.stroke();
-        this.ctx.rotate(-this.pos);
-    }
-}
-
-class ClockFace {
-    constructor(ctx, radius) {
-        this.ctx = ctx;
-        this.radius = radius;
+    setAlarm(time) {
+        if (this.isValidTime(time)) {
+            this.alarms.push(time);
+            this.alarms.sort((a, b) => a.hours * 60 + a.minutes - (b.hours * 60 + b.minutes));
+        }
+        else {
+            console.error("Invalid time provided for alarm.");
+        }
     }
 
-    draw() {
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, this.radius, 0, 2 * Math.PI);
-        this.ctx.fillStyle = 'white';
-        this.ctx.fill();
+    cancelAlarm(index) {
+        this.alarms.splice(index, 1);
+        this.updateAlarmsList();
+    }
 
-        const gradient = this.ctx.createRadialGradient(0, 0, this.radius * 0.95, 0, 0, this.radius * 1.05);
-        gradient.addColorStop(0, '#333');
-        gradient.addColorStop(0.5, 'white');
-        gradient.addColorStop(1, '#333');
-        this.ctx.strokeStyle = gradient;
-        this.ctx.lineWidth = this.radius * 0.1;
-        this.ctx.stroke();
+    updateAlarmsList() {
+        this.alarmsListElement.innerHTML = '';
+        const nextAlarm = this.nextAlarm();
+        for (let i = 0; i < this.alarms.length; i++) {
+            const alarm = this.alarms[i];
+            const listItem = document.createElement('li');
+            listItem.innerText = `${alarm.hours < 10 ? '0' + alarm.hours : alarm.hours}:${alarm.minutes < 10 ? '0' + alarm.minutes : alarm.minutes}`;
+            if (alarm === nextAlarm) {
+                const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
+                const now = new Date();
+                const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
+                const closestTime = alarmTime - currentTime;
+                const [hours, minutes] = this.formatTime(Math.floor(closestTime / 3600), Math.floor((closestTime % 3600) / 60));
+                listItem.innerText += ` ${hours}:${minutes}`;
+            }
+            const deleteButton = document.createElement('button');
+            deleteButton.innerText = 'Удалить';
+            deleteButton.addEventListener('click', () => this.cancelAlarm(i));
+            listItem.appendChild(deleteButton);
+            this.alarmsListElement.appendChild(listItem);
+        }
+    }
 
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, this.radius * 0.1, 0, 2 * Math.PI);
-        this.ctx.fillStyle = '#333';
-        this.ctx.fill();
+    checkAlarms() {
+        const now = new Date();
+        const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
+        for (let i = 0; i < this.alarms.length; i++) {
+            const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
+            if (currentTime >= alarmTime) {
+                alert('Alarm!');
+                this.alarms.splice(i, 1);
+                i--;
+            }
+        }
+    }
+
+    nextAlarm() {
+        const now = new Date();
+        const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
+        let closestAlarm = null;
+        let closestTime = 24 * 60 * 60;
+        for (let i = 0; i < this.alarms.length; i++) {
+            const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
+            if (alarmTime > currentTime && alarmTime - currentTime < closestTime) {
+                closestAlarm = this.alarms[i];
+                closestTime = alarmTime - currentTime;
+            }
+        }
+        return closestAlarm;
+    }
+
+    isValidTime(time) {
+        if (time.hours < 0 || time.hours > 23 || time.minutes < 0 || time.minutes > 59) {
+            return false;
+        }
+        return true;
+    }
+
+    formatTime = (hours, minutes) => {
+        return [hours, minutes].map(unit => unit < 10 ? '0' + unit : unit);
     }
 }
 
 class Clock {
-    constructor(canvasId, digitalClockId, formatSwitchId) {
+    constructor(canvasId, digitalClockId, formatSwitchId, alarmsListElementId, addAlarmButtonId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext("2d");
         this.radius = this.canvas.height / 2;
         this.ctx.translate(this.radius, this.radius);
         this.radius *= 0.9;
         this.format24Hour = false;
-        this.alarms = [];
         this.digitalClockElement = document.getElementById(digitalClockId);
+        this.alarm = new Alarm(alarmsListElementId, addAlarmButtonId);
         document.getElementById(formatSwitchId).addEventListener('change', (event) => {
             this.format24Hour = event.target.checked;
             this.drawDigitalClock();
@@ -150,53 +195,56 @@ class Clock {
     drawClocks() {
         this.drawClock();
         this.drawDigitalClock();
-        this.checkAlarms();
-    }
-
-    setAlarm(time) {
-        this.alarms.push(time);
-    }
-
-    cancelAlarm(time) {
-        const index = this.alarms.indexOf(time);
-        if (index > -1) {
-            this.alarms.splice(index, 1);
-        }
-    }
-
-    checkAlarms() {
-        const now = new Date();
-        const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
-        for (let i = 0; i < this.alarms.length; i++) {
-            const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
-            if (currentTime >= alarmTime) {
-                alert('Alarm!');
-                this.alarms.splice(i, 1);
-                i--;
-            }
-        }
-    }
-
-    nextAlarm() {
-        const now = new Date();
-        const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
-        let closestAlarm = null;
-        let closestTime = 24 * 60 * 60;
-        for (let i = 0; i < this.alarms.length; i++) {
-            const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
-            if (alarmTime > currentTime && alarmTime - currentTime < closestTime) {
-                closestAlarm = this.alarms[i];
-                closestTime = alarmTime - currentTime;
-            }
-        }
-        if (closestAlarm !== null) {
-            console.log(`Next alarm at ${closestAlarm.hours}:${closestAlarm.minutes}. Time left: ${Math.floor(closestTime / 3600)}:${Math.floor((closestTime % 3600) / 60)}:${closestTime % 60}`);
-        }
-        else {
-            console.log('No alarms set.');
-        }
+        this.alarm.checkAlarms();
+        this.alarm.updateAlarmsList();
     }
 }
 
-let clock = new Clock("canvas", "digital-clock", "format-switch");
-clock.nextAlarm();
+class ClockHand {
+    constructor(ctx, pos, length, width) {
+        this.ctx = ctx;
+        this.pos = pos;
+        this.length = length;
+        this.width = width;
+    }
+
+    draw() {
+        this.ctx.beginPath();
+        this.ctx.lineWidth = this.width;
+        this.ctx.lineCap = "round";
+        this.ctx.moveTo(0, 0);
+        this.ctx.rotate(this.pos);
+        this.ctx.lineTo(0, -this.length);
+        this.ctx.stroke();
+        this.ctx.rotate(-this.pos);
+    }
+}
+
+class ClockFace {
+    constructor(ctx, radius) {
+        this.ctx = ctx;
+        this.radius = radius;
+    }
+
+    draw() {
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, this.radius, 0, 2 * Math.PI);
+        this.ctx.fillStyle = 'white';
+        this.ctx.fill();
+
+        const gradient = this.ctx.createRadialGradient(0, 0, this.radius * 0.95, 0, 0, this.radius * 1.05);
+        gradient.addColorStop(0, '#333');
+        gradient.addColorStop(0.5, 'white');
+        gradient.addColorStop(1, '#333');
+        this.ctx.strokeStyle = gradient;
+        this.ctx.lineWidth = this.radius * 0.1;
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, this.radius * 0.1, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#333';
+        this.ctx.fill();
+    }
+}
+
+const clock = new Clock("canvas", "digital-clock", "format-switch", "alarms-list", "add-alarm");
