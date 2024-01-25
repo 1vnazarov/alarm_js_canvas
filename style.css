@@ -31,6 +31,10 @@ body {
     align-items: center;
 }
 
+#format-switch {
+    transform: scale(2);
+}
+
 .switch-container {
     margin-top: 1rem;
 }
@@ -43,6 +47,7 @@ body {
 
 .input-container input {
     margin: 0.5rem;
+    transform: scale(1.2);
 }
 
 #add-alarm {
