@@ -1,0 +1,28 @@
+body {
+    background-color: rgb(145, 128, 97);
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#digital-clock {
+    text-align: center;
+    font-size: large;
+    background-color: antiquewhite;
+    width: 15%;
+}
+
+#label-format-switch {
+    font-size: large;
+}
+
+.column {
+    flex-direction: column;
+}
+
+.row {
+    flex-direction: row;
+}
