@@ -14,15 +14,17 @@
     </div>
     <div class="center column">
         <h1 id="digital-clock"></h1>
-        <div class="row">
+        <div class="row switch-container">
             <label id="label-format-switch" for="format-switch">24 часовой формат</label>
             <input type="checkbox" id="format-switch">
         </div>
     </div>
-    <div class="center column">
+    <div class="center column alarm-container">
         <h2>Управление будильниками</h2>
-        <input type="number" id="alarm-hours" min="0" max="23" placeholder="Часы" class="row">
-        <input type="number" id="alarm-minutes" min="0" max="59" placeholder="Минуты" class="row">
+        <div class="row input-container">
+            <input type="number" id="alarm-hours" min="0" max="23" placeholder="Часы">
+            <input type="number" id="alarm-minutes" min="0" max="59" placeholder="Минуты">
+        </div>
         <button id="add-alarm">Добавить будильник</button>
         <ul id="alarms-list"></ul>
     </div>

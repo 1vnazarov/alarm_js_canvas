@@ -29,19 +29,20 @@ class Alarm {
 
     updateAlarmsList() {
         this.alarmsListElement.innerHTML = '';
-        const nextAlarm = this.nextAlarm();
         for (let i = 0; i < this.alarms.length; i++) {
             const alarm = this.alarms[i];
             const listItem = document.createElement('li');
-            listItem.innerText = `${alarm.hours < 10 ? '0' + alarm.hours : alarm.hours}:${alarm.minutes < 10 ? '0' + alarm.minutes : alarm.minutes}`;
-            if (alarm === nextAlarm) {
-                const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
-                const now = new Date();
-                const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
-                const closestTime = alarmTime - currentTime;
-                const [hours, minutes] = this.formatTime(Math.floor(closestTime / 3600), Math.floor((closestTime % 3600) / 60));
+            listItem.innerText = this.formatTime(alarm.hours, alarm.minutes).join(':');
+
+            const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
+            const now = new Date();
+            const currentTime = now.getHours() * 60 * 60 + now.getMinutes() * 60 + now.getSeconds();
+            const timeLeft = alarmTime - currentTime;
+            if (timeLeft > 0) {
+                const [hours, minutes] = this.formatTime(Math.floor(timeLeft / 3600), Math.floor((timeLeft % 3600) / 60));
                 listItem.innerText += ` ${hours}:${minutes}`;
             }
+
             const deleteButton = document.createElement('button');
             deleteButton.innerText = 'Удалить';
             deleteButton.addEventListener('click', () => this.cancelAlarm(i));
