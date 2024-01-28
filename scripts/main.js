@@ -1,7 +1,12 @@
 class Alarm {
-    constructor(alarmsListElementId, addAlarmButtonId) {
+    constructor(alarmsListElementId, addAlarmButtonId, alarmSoundUrl) {
         this.alarms = [];
         this.alarmsListElement = document.getElementById(alarmsListElementId);
+        this.alarmSound = new Audio(alarmSoundUrl);
+        this.alarmSound.addEventListener('ended', function () {
+            this.currentTime = 0;
+            this.play();
+        }, false);
         document.getElementById(addAlarmButtonId).addEventListener('click', () => {
             const hours = document.getElementById('alarm-hours').value;
             const minutes = document.getElementById('alarm-minutes').value;
@@ -44,8 +49,14 @@ class Alarm {
             }
 
             const deleteButton = document.createElement('button');
-            deleteButton.innerText = 'Удалить';
-            deleteButton.addEventListener('click', () => this.cancelAlarm(i));
+            deleteButton.innerText = alarm.isRinging ? 'Отменить' : 'Удалить';
+            deleteButton.addEventListener('click', () => {
+                if (alarm.isRinging) {
+                    this.alarmSound.pause();
+                    this.alarmSound.currentTime = 0;
+                }
+                this.cancelAlarm(i);
+            });
             listItem.appendChild(deleteButton);
             this.alarmsListElement.appendChild(listItem);
         }
@@ -57,9 +68,9 @@ class Alarm {
         for (let i = 0; i < this.alarms.length; i++) {
             const alarmTime = this.alarms[i].hours * 60 * 60 + this.alarms[i].minutes * 60;
             if (currentTime >= alarmTime) {
-                alert('Alarm!');
-                this.alarms.splice(i, 1);
-                i--;
+                this.alarmSound.play();
+                this.alarms[i].isRinging = true;
+                this.updateAlarmsList();
             }
         }
     }
@@ -92,7 +103,7 @@ class Alarm {
 }
 
 class Clock {
-    constructor(canvasId, digitalClockId, formatSwitchId, alarmsListElementId, addAlarmButtonId) {
+    constructor(canvasId, digitalClockId, formatSwitchId, alarmsListElementId, addAlarmButtonId, alarmSoundUrl) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext("2d");
         this.radius = this.canvas.height / 2;
@@ -100,7 +111,7 @@ class Clock {
         this.radius *= 0.9;
         this.format24Hour = false;
         this.digitalClockElement = document.getElementById(digitalClockId);
-        this.alarm = new Alarm(alarmsListElementId, addAlarmButtonId);
+        this.alarm = new Alarm(alarmsListElementId, addAlarmButtonId, alarmSoundUrl);
         document.getElementById(formatSwitchId).addEventListener('change', (event) => {
             this.format24Hour = event.target.checked;
             this.drawDigitalClock();
@@ -248,4 +259,4 @@ class ClockFace {
     }
 }
 
-const clock = new Clock("canvas", "digital-clock", "format-switch", "alarms-list", "add-alarm");
+const clock = new Clock("canvas", "digital-clock", "format-switch", "alarms-list", "add-alarm", "alarm.mp3");
